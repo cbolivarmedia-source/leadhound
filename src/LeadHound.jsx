@@ -12,7 +12,7 @@ const LEADS = [
   { id: 3, name: "Roberto Mendes", phone: "(555) 333-4455", birdDogId: 2, status: "showed", date: "2026-02-06", notes: "Screenshot - paystubs uploaded", paidOut: false, amount: 200 },
   { id: 4, name: "Lisa Chang", phone: "(555) 444-5566", birdDogId: 2, status: "sold", date: "2026-02-05", notes: "2019 Civic, funded", paidOut: true, amount: 200 },
   { id: 5, name: "Andre Thomas", phone: "(555) 555-6677", birdDogId: 3, status: "new", date: "2026-02-09", notes: "Text lead - name and number only", paidOut: false, amount: 100 },
-  { id: 6, name: "Maria Gonzalez", phone: "(555) 666-7788", birdDogId: 1, status: "sold", date: "2026-02-03", notes: "2020 Sentra, funded", paidOut: true, amount: 150 },
+  { id: 6, name: "Maria Gonzalez", phone:"(555) 666-7788", birdDogId: 1, status: "sold", date: "2026-02-03", notes: "2020 Sentra, funded", paidOut: true, amount: 150 },
   { id: 7, name: "DeShawn Harris", phone: "(555) 777-8899", birdDogId: 2, status: "lost", date: "2026-01-28", notes: "No show x3", paidOut: false, amount: 200 },
   { id: 8, name: "Tameka Wilson", phone: "(555) 888-9900", birdDogId: 1, status: "sold", date: "2026-01-30", notes: "2017 Malibu, funded", paidOut: false, amount: 150 },
 ];
@@ -1159,22 +1159,42 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
             {newLead.source === "screenshot" && (
               <div style={{ marginBottom: 16 }}>
                 {!imagePreview ? (
-                  <label style={{
-                    display: "block", border: "2px dashed rgba(245,158,11,0.3)", borderRadius: 12,
-                    padding: "28px 20px", textAlign: "center", background: "rgba(245,158,11,0.04)",
-                    cursor: "pointer", transition: "all 0.2s",
+                  <div style={{
+                    border: "2px dashed rgba(245,158,11,0.3)", borderRadius: 12,
+                    padding: "24px 20px", textAlign: "center", background: "rgba(245,158,11,0.04)",
                   }}>
-                    <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload}
-                      style={{ display: "none" }} />
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>ð¸</div>
-                    <div style={{ fontSize: 13, color: "#ccc", fontWeight: 500 }}>Tap to upload or take a photo</div>
-                    <div style={{ fontSize: 11, color: "#555", marginTop: 6 }}>Screenshots of texts, business cards, handwritten notes</div>
+                    <div style={{ fontSize: 13, color: "#ccc", fontWeight: 500, marginBottom: 14 }}>Upload an image or take a photo</div>
+                    <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 12 }}>
+                      <label style={{
+                        flex: 1, padding: "14px 10px", borderRadius: 10, cursor: "pointer",
+                        border: "1px solid rgba(245,158,11,0.25)", background: "rgba(245,158,11,0.06)",
+                        textAlign: "center", transition: "all 0.2s",
+                      }}>
+                        <input type="file" accept="image/*" onChange={handleImageUpload}
+                          style={{ display: "none" }} />
+                        <div style={{ fontSize: 24, marginBottom: 4 }}>🖼️</div>
+                        <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Upload Image</div>
+                        <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>Gallery or files</div>
+                      </label>
+                      <label style={{
+                        flex: 1, padding: "14px 10px", borderRadius: 10, cursor: "pointer",
+                        border: "1px solid rgba(245,158,11,0.25)", background: "rgba(245,158,11,0.06)",
+                        textAlign: "center", transition: "all 0.2s",
+                      }}>
+                        <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload}
+                          style={{ display: "none" }} />
+                        <div style={{ fontSize: 24, marginBottom: 4 }}>📸</div>
+                        <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Take Photo</div>
+                        <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>Use camera</div>
+                      </label>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#555" }}>Screenshots of texts, business cards, handwritten notes</div>
                     <div style={{
                       marginTop: 10, padding: "6px 14px", borderRadius: 8, display: "inline-block",
                       background: "rgba(245,158,11,0.12)", color: "#f59e0b", fontSize: 11, fontWeight: 600,
                       fontFamily: "'Space Mono', monospace",
                     }}>AI WILL EXTRACT INFO AUTOMATICALLY</div>
-                  </label>
+                  </div>
                 ) : (
                   <div style={{
                     borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)",
