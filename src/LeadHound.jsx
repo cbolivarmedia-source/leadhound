@@ -599,7 +599,9 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
   const [extracting, setExtracting] = useState(false);
   const [extractResult, setExtractResult] = useState(null);
 
-  // AI extraction: reads image via OCR-style canvas text extraction + pattern matching
+  // AI extraction: sends image to Claude Vision API to read lead info
+  const CLAUDE_API_KEY = "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";
+
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -608,25 +610,60 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
       setImagePreview(ev.target.result);
       setExtracting(true);
       setExtractResult(null);
-      // Simulate AI processing with a realistic delay, then run extraction
-      setTimeout(() => runExtraction(ev.target.result, file), 1800);
+      runExtraction(ev.target.result, file);
     };
     reader.readAsDataURL(file);
   };
 
-  const runExtraction = (dataUrl, file) => {
-    // Create a canvas to read pixel data and attempt text extraction
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
+  const runExtraction = async (dataUrl, file) => {
+    try {
+      const [header, base64Data] = dataUrl.split(",");
+      const mediaType = header.match(/data:(.*?);/)?.[1] || "image/jpeg";
 
-      // In a real app, this would call an AI vision API (GPT-4V, Claude, etc.)
-      // For this demo, we simulate smart extraction based on common lead screenshot patterns
-      const extracted = simulateAIExtraction(file.name);
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": CLAUDE_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5-20250929",
+          max_tokens: 512,
+          messages: [{
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: mediaType, data: base64Data },
+              },
+              {
+                type: "text",
+                text: `You are a lead extraction assistant for a car dealership. Look at this image and extract any potential customer lead information you can find. This could be a screenshot of a text conversation, a business card, a handwritten note, or any other source.
+
+Extract and return ONLY a JSON object with these fields:
+- "name": the customer's full name (string, or "" if not found)
+- "phone": the customer's phone number exactly as shown (string, or "" if not found)
+- "notes": a brief summary of what the customer wants/needs based on the image content (string — mention vehicle interest, down payment, trade-in, or any other relevant details you see)
+- "confidence": your confidence level 1-100 that this is a real lead with usable info
+
+Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
+              },
+            ],
+          }],
+        }),
+      });
+
+      const result = await response.json();
+      const text = result.content?.[0]?.text || "{}";
+      let extracted;
+      try {
+        extracted = JSON.parse(text.trim());
+      } catch {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        extracted = jsonMatch ? JSON.parse(jsonMatch[0]) : { name: "", phone: "", notes: "Could not parse AI response", confidence: 0 };
+      }
 
       setNewLead(prev => ({
         ...prev,
@@ -635,22 +672,13 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
         notes: extracted.notes || prev.notes,
         source: "screenshot",
       }));
-      setExtractResult(extracted);
+      setExtractResult({ ...extracted, confidence: extracted.confidence || 85 });
       setExtracting(false);
-    };
-    img.src = dataUrl;
-  };
-
-  // Simulated AI extraction â in production, replace with actual vision API call
-  const simulateAIExtraction = (filename) => {
-    // Simulate different extraction results based on randomness to show the feature working
-    const samples = [
-      { name: "Tyrone Jackson", phone: "(555) 912-3344", notes: "Screenshot: Interested in SUV, $2000 down, works at FedEx", confidence: 94 },
-      { name: "Brianna Lopez", phone: "(555) 718-5502", notes: "Screenshot: Needs reliable car for work, has trade-in 2015 Camry", confidence: 88 },
-      { name: "Dante Williams", phone: "(555) 404-6789", notes: "Screenshot: Looking for truck, pre-approved at credit union", confidence: 91 },
-      { name: "Jasmine Rivera", phone: "(555) 301-2288", notes: "Screenshot: First time buyer, co-signer available, budget $15k", confidence: 86 },
-    ];
-    return samples[Math.floor(Math.random() * samples.length)];
+    } catch (err) {
+      console.error("Claude Vision extraction failed:", err);
+      setExtractResult({ name: "", phone: "", notes: "AI extraction failed — please fill in manually", confidence: 0 });
+      setExtracting(false);
+    }
   };
 
   const clearImage = () => {
