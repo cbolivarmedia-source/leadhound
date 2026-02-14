@@ -7,14 +7,25 @@ const BIRD_DOGS = [
 ];
 
 const LEADS = [
-  { id: 1, name: "James Williams", phone: "(555) 111-2233", birdDogId: 1, status: "sold", date: "2026-02-07", notes: "2018 Altima, funded", paidOut: true, amount: 150 },
-  { id: 2, name: "Keisha Brown", phone: "(555) 222-3344", birdDogId: 1, status: "contacted", date: "2026-02-08", notes: "Needs SUV, has $1500 down", paidOut: false, amount: 150 },
-  { id: 3, name: "Roberto Mendes", phone: "(555) 333-4455", birdDogId: 2, status: "showed", date: "2026-02-06", notes: "Screenshot - paystubs uploaded", paidOut: false, amount: 200 },
-  { id: 4, name: "Lisa Chang", phone: "(555) 444-5566", birdDogId: 2, status: "sold", date: "2026-02-05", notes: "2019 Civic, funded", paidOut: true, amount: 200 },
-  { id: 5, name: "Andre Thomas", phone: "(555) 555-6677", birdDogId: 3, status: "new", date: "2026-02-09", notes: "Text lead - name and number only", paidOut: false, amount: 100 },
-  { id: 6, name: "Maria Gonzalez", phone:"(555) 666-7788", birdDogId: 1, status: "sold", date: "2026-02-03", notes: "2020 Sentra, funded", paidOut: true, amount: 150 },
-  { id: 7, name: "DeShawn Harris", phone: "(555) 777-8899", birdDogId: 2, status: "lost", date: "2026-01-28", notes: "No show x3", paidOut: false, amount: 200 },
-  { id: 8, name: "Tameka Wilson", phone: "(555) 888-9900", birdDogId: 1, status: "sold", date: "2026-01-30", notes: "2017 Malibu, funded", paidOut: false, amount: 150 },
+  { id: 1, name: "James Williams", phone: "(555) 111-2233", birdDogId: 1, status: "sold", date: "2026-02-07", notes: "2018 Altima, funded", paidOut: true, amount: 150, comments: [
+    { id: 1, author: "Marcus Johnson", role: "hound", text: "Customer came in Saturday, very motivated buyer", timestamp: "2026-02-07T10:30:00" },
+    { id: 2, author: "Admin", role: "admin", text: "Deal funded, paying out this week", timestamp: "2026-02-07T16:45:00" },
+  ]},
+  { id: 2, name: "Keisha Brown", phone: "(555) 222-3344", birdDogId: 1, status: "contacted", date: "2026-02-08", notes: "Needs SUV, has $1500 down", paidOut: false, amount: 150, comments: [
+    { id: 1, author: "Marcus Johnson", role: "hound", text: "She's looking for a 3-row SUV, has two kids. Works at the hospital", timestamp: "2026-02-08T09:15:00" },
+    { id: 2, author: "Admin", role: "admin", text: "Called her, set appointment for Wednesday", timestamp: "2026-02-08T14:20:00" },
+    { id: 3, author: "Marcus Johnson", role: "hound", text: "She said she might bring her husband too", timestamp: "2026-02-08T15:00:00" },
+  ]},
+  { id: 3, name: "Roberto Mendes", phone: "(555) 333-4455", birdDogId: 2, status: "showed", date: "2026-02-06", notes: "Screenshot - paystubs uploaded", paidOut: false, amount: 200, comments: [
+    { id: 1, author: "Tina Reyes", role: "hound", text: "He showed up today, looked at the Tacoma", timestamp: "2026-02-06T13:00:00" },
+  ]},
+  { id: 4, name: "Lisa Chang", phone: "(555) 444-5566", birdDogId: 2, status: "sold", date: "2026-02-05", notes: "2019 Civic, funded", paidOut: true, amount: 200, comments: [] },
+  { id: 5, name: "Andre Thomas", phone: "(555) 555-6677", birdDogId: 3, status: "new", date: "2026-02-09", notes: "Text lead - name and number only", paidOut: false, amount: 100, comments: [] },
+  { id: 6, name: "Maria Gonzalez", phone: "(555) 666-7788", birdDogId: 1, status: "sold", date: "2026-02-03", notes: "2020 Sentra, funded", paidOut: true, amount: 150, comments: [] },
+  { id: 7, name: "DeShawn Harris", phone: "(555) 777-8899", birdDogId: 2, status: "lost", date: "2026-01-28", notes: "No show x3", paidOut: false, amount: 200, comments: [
+    { id: 1, author: "Admin", role: "admin", text: "No showed 3 times, marking as lost", timestamp: "2026-01-28T17:00:00" },
+  ]},
+  { id: 8, name: "Tameka Wilson", phone: "(555) 888-9900", birdDogId: 1, status: "sold", date: "2026-01-30", notes: "2017 Malibu, funded", paidOut: false, amount: 150, comments: [] },
 ];
 
 const STATUS_CONFIG = {
@@ -344,8 +355,31 @@ function LoginScreen({ birdDogs, onLogin }) {
 /* âââââââââââââââââââââââââââââââââââââââââââââ
    REFERRER PORTAL (hound's limited view)
    âââââââââââââââââââââââââââââââââââââââââââââ */
-function ReferrerPortal({ birdDog, leads, onLogout }) {
+function ReferrerPortal({ birdDog, leads, setLeads, onLogout }) {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [newComment, setNewComment] = useState("");
+
+  const addComment = (leadId, text, author, role) => {
+    if (!text.trim()) return;
+    setLeads(prev => prev.map(l => {
+      if (l.id !== leadId) return l;
+      return { ...l, comments: [...(l.comments || []), { id: Date.now(), author, role, text: text.trim(), timestamp: new Date().toISOString() }] };
+    }));
+    setNewComment("");
+    setSelectedLead(prev => prev ? { ...prev, comments: [...(prev.comments || []), { id: Date.now(), author, role, text: text.trim(), timestamp: new Date().toISOString() }] } : null);
+  };
+
+  const formatTimeAgo = (ts) => {
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
   const myLeads = useMemo(() => leads.filter(l => l.birdDogId === birdDog.id && leadMatchesMonth(l.date, selectedMonth)), [leads, birdDog.id, selectedMonth]);
 
   const stats = useMemo(() => {
@@ -538,9 +572,9 @@ function ReferrerPortal({ birdDog, leads, onLogout }) {
             }}>No leads match this filter.</div>
           )}
           {filtered.map((lead, i) => (
-            <div key={lead.id} style={{
+            <div key={lead.id} onClick={() => setSelectedLead(lead)} style={{
               background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 12, padding: "16px 20px",
+              borderRadius: 12, padding: "16px 20px", cursor: "pointer",
               display: "grid", gridTemplateColumns: "1.3fr 1fr 0.5fr 0.5fr",
               alignItems: "center", gap: 12,
               animation: `fadeUp 0.3s ease ${i * 0.04}s both`,
@@ -554,7 +588,14 @@ function ReferrerPortal({ birdDog, leads, onLogout }) {
                 <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{lead.phone}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: "#444" }}>{lead.notes}</div>
+                <div style={{ fontSize: 11, color: "#444", display: "flex", alignItems: "center", gap: 6 }}>
+                  {lead.notes}
+                  {(lead.comments?.length > 0) && (
+                    <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "1px 6px", borderRadius: 5, fontFamily: "'Space Mono', monospace", fontWeight: 600 }}>
+                      {lead.comments.length}
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: 11, color: "#333", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>{lead.date}</div>
               </div>
               <div>
@@ -577,6 +618,96 @@ function ReferrerPortal({ birdDog, leads, onLogout }) {
             </div>
           ))}
         </div>
+
+        {/* ââ Lead Detail Modal (Notes Thread) ââ */}
+        {selectedLead && (
+          <div style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200,
+          }} onClick={() => { setSelectedLead(null); setNewComment(""); }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: "#18181f", border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 18, padding: 0, width: 480, maxHeight: "80vh", display: "flex", flexDirection: "column",
+              animation: "fadeUp 0.3s ease", overflow: "hidden",
+            }}>
+              {/* Header */}
+              <div style={{ padding: "22px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 600 }}>{selectedLead.name}</div>
+                    <div style={{ fontSize: 13, color: "#666", marginTop: 3 }}>{selectedLead.phone}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{
+                      padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600,
+                      color: STATUS_CONFIG[selectedLead.status]?.color, background: STATUS_CONFIG[selectedLead.status]?.bg,
+                      fontFamily: "'Space Mono', monospace",
+                    }}>{STATUS_CONFIG[selectedLead.status]?.label}</span>
+                    <button onClick={() => { setSelectedLead(null); setNewComment(""); }} style={{
+                      width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.06)",
+                      color: "#888", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>x</button>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: "#555", marginTop: 8, fontFamily: "'Space Mono', monospace" }}>{selectedLead.date}</div>
+                {selectedLead.notes && (
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 10, padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+                    {selectedLead.notes}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes Thread */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 10, minHeight: 120, maxHeight: 300 }}>
+                {(!selectedLead.comments || selectedLead.comments.length === 0) ? (
+                  <div style={{ textAlign: "center", color: "#444", fontSize: 13, padding: 20 }}>No notes yet. Start the conversation below.</div>
+                ) : (
+                  selectedLead.comments.map(c => (
+                    <div key={c.id} style={{
+                      padding: "10px 14px", borderRadius: 10,
+                      background: c.role === "admin" ? "rgba(245,158,11,0.05)" : "rgba(168,85,247,0.05)",
+                      borderLeft: `3px solid ${c.role === "admin" ? "#f59e0b" : "#a855f7"}`,
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: c.role === "admin" ? "#f59e0b" : "#a855f7" }}>{c.author}</span>
+                          <span style={{
+                            fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 600, fontFamily: "'Space Mono', monospace",
+                            color: c.role === "admin" ? "#f59e0b" : "#a855f7",
+                            background: c.role === "admin" ? "rgba(245,158,11,0.15)" : "rgba(168,85,247,0.15)",
+                          }}>{c.role === "admin" ? "ADMIN" : "HOUND"}</span>
+                        </div>
+                        <span style={{ fontSize: 10, color: "#555", fontFamily: "'Space Mono', monospace" }}>{formatTimeAgo(c.timestamp)}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "#ccc", lineHeight: 1.5 }}>{c.text}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Add Note Input */}
+              <div style={{ padding: "12px 24px 18px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 8 }}>
+                <input
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && newComment.trim()) { addComment(selectedLead.id, newComment, birdDog.name, "hound"); } }}
+                  placeholder="Add a note..."
+                  style={{
+                    flex: 1, padding: "10px 14px", borderRadius: 9,
+                    border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
+                    color: "#e8e8ed", fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: "none",
+                  }}
+                />
+                <button onClick={() => addComment(selectedLead.id, newComment, birdDog.name, "hound")} style={{
+                  padding: "10px 16px", borderRadius: 9, border: "none",
+                  background: newComment.trim() ? "linear-gradient(135deg, #a855f7, #7c3aed)" : "rgba(255,255,255,0.06)",
+                  color: newComment.trim() ? "#fff" : "#555", fontSize: 12, fontWeight: 600, cursor: newComment.trim() ? "pointer" : "default",
+                  fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s",
+                }}>Add Note</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -590,7 +721,7 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
   const [selectedBirdDog, setSelectedBirdDog] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showAddBirdDog, setShowAddBirdDog] = useState(false);
-  const [newLead, setNewLead] = useState({ name: "", phone: "", birdDogId: "", notes: "", source: "text" });
+  const [newLead, setNewLead] = useState({ name: "", phone: "", birdDogId: "", notes: "", source: "text", comments: [] });
   const [newBirdDog, setNewBirdDog] = useState({ name: "", phone: "", rate: "" });
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -598,6 +729,30 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [extractResult, setExtractResult] = useState(null);
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [newComment, setNewComment] = useState("");
+
+  const addComment = (leadId, text, author, role) => {
+    if (!text.trim()) return;
+    setLeads(prev => prev.map(l => {
+      if (l.id !== leadId) return l;
+      return { ...l, comments: [...(l.comments || []), { id: Date.now(), author, role, text: text.trim(), timestamp: new Date().toISOString() }] };
+    }));
+    setNewComment("");
+    // Update selectedLead to reflect new comment
+    setSelectedLead(prev => prev ? { ...prev, comments: [...(prev.comments || []), { id: Date.now(), author, role, text: text.trim(), timestamp: new Date().toISOString() }] } : null);
+  };
+
+  const formatTimeAgo = (ts) => {
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
 
   // AI extraction: sends image to Claude Vision API to read lead info
   const CLAUDE_API_KEY = "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";
@@ -617,6 +772,7 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
 
   const runExtraction = async (dataUrl, file) => {
     try {
+      // Extract the base64 data and media type from the data URL
       const [header, base64Data] = dataUrl.split(",");
       const mediaType = header.match(/data:(.*?);/)?.[1] || "image/jpeg";
 
@@ -645,7 +801,7 @@ function AdminDashboard({ leads, setLeads, birdDogs, setBirdDogs, onLogout }) {
 Extract and return ONLY a JSON object with these fields:
 - "name": the customer's full name (string, or "" if not found)
 - "phone": the customer's phone number exactly as shown (string, or "" if not found)
-- "notes": a brief summary of what the customer wants/needs based on the image content (string — mention vehicle interest, down payment, trade-in, or any other relevant details you see)
+- "notes": a brief summary of what the customer wants/needs based on the image content (string â mention vehicle interest, down payment, trade-in, or any other relevant details you see)
 - "confidence": your confidence level 1-100 that this is a real lead with usable info
 
 Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
@@ -657,10 +813,12 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
 
       const result = await response.json();
       const text = result.content?.[0]?.text || "{}";
+      // Parse the JSON from Claude's response
       let extracted;
       try {
         extracted = JSON.parse(text.trim());
       } catch {
+        // If JSON parse fails, try to extract JSON from the response
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         extracted = jsonMatch ? JSON.parse(jsonMatch[0]) : { name: "", phone: "", notes: "Could not parse AI response", confidence: 0 };
       }
@@ -676,7 +834,7 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
       setExtracting(false);
     } catch (err) {
       console.error("Claude Vision extraction failed:", err);
-      setExtractResult({ name: "", phone: "", notes: "AI extraction failed — please fill in manually", confidence: 0 });
+      setExtractResult({ name: "", phone: "", notes: "AI extraction failed â please fill in manually", confidence: 0 });
       setExtracting(false);
     }
   };
@@ -993,9 +1151,9 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {filteredLeads.map((lead, i) => (
-                <div key={lead.id} style={{
+                <div key={lead.id} onClick={() => setSelectedLead(lead)} style={{
                   background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 12, padding: "14px 18px",
+                  borderRadius: 12, padding: "14px 18px", cursor: "pointer",
                   display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.5fr 0.5fr 0.4fr",
                   alignItems: "center", gap: 12, animation: `fadeUp 0.3s ease ${i * 0.04}s both`, transition: "background 0.2s",
                 }}
@@ -1008,7 +1166,14 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
                   </div>
                   <div>
                     <div style={{ fontSize: 12, color: "#888" }}>via {getBirdDogName(lead.birdDogId)}</div>
-                    <div style={{ fontSize: 11, color: "#444", marginTop: 2 }}>{lead.notes}</div>
+                    <div style={{ fontSize: 11, color: "#444", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                      {lead.notes}
+                      {(lead.comments?.length > 0) && (
+                        <span style={{ fontSize: 10, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "1px 6px", borderRadius: 5, fontFamily: "'Space Mono', monospace", fontWeight: 600 }}>
+                          {lead.comments.length} note{lead.comments.length !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <button onClick={() => cycleStatus(lead.id)} style={{
@@ -1157,6 +1322,99 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
         )}
       </div>
 
+      {/* ââ Lead Detail Modal (Notes Thread) ââ */}
+      {selectedLead && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200,
+        }} onClick={() => { setSelectedLead(null); setNewComment(""); }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#18181f", border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 18, padding: 0, width: 480, maxHeight: "80vh", display: "flex", flexDirection: "column",
+            animation: "fadeUp 0.3s ease", overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{ padding: "22px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 600 }}>{selectedLead.name}</div>
+                  <div style={{ fontSize: 13, color: "#666", marginTop: 3 }}>{selectedLead.phone}</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{
+                    padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600,
+                    color: STATUS_CONFIG[selectedLead.status]?.color, background: STATUS_CONFIG[selectedLead.status]?.bg,
+                    fontFamily: "'Space Mono', monospace",
+                  }}>{STATUS_CONFIG[selectedLead.status]?.label}</span>
+                  <button onClick={() => { setSelectedLead(null); setNewComment(""); }} style={{
+                    width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.06)",
+                    color: "#888", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>x</button>
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: "#555", marginTop: 8, display: "flex", gap: 12 }}>
+                <span>via {getBirdDogName(selectedLead.birdDogId)}</span>
+                <span style={{ fontFamily: "'Space Mono', monospace" }}>{selectedLead.date}</span>
+              </div>
+              {selectedLead.notes && (
+                <div style={{ fontSize: 12, color: "#888", marginTop: 10, padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+                  {selectedLead.notes}
+                </div>
+              )}
+            </div>
+
+            {/* Notes Thread */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 10, minHeight: 120, maxHeight: 300 }}>
+              {(!selectedLead.comments || selectedLead.comments.length === 0) ? (
+                <div style={{ textAlign: "center", color: "#444", fontSize: 13, padding: 20 }}>No notes yet. Start the conversation below.</div>
+              ) : (
+                selectedLead.comments.map(c => (
+                  <div key={c.id} style={{
+                    padding: "10px 14px", borderRadius: 10,
+                    background: c.role === "admin" ? "rgba(245,158,11,0.05)" : "rgba(168,85,247,0.05)",
+                    borderLeft: `3px solid ${c.role === "admin" ? "#f59e0b" : "#a855f7"}`,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: c.role === "admin" ? "#f59e0b" : "#a855f7" }}>{c.author}</span>
+                        <span style={{
+                          fontSize: 9, padding: "1px 6px", borderRadius: 4, fontWeight: 600, fontFamily: "'Space Mono', monospace",
+                          color: c.role === "admin" ? "#f59e0b" : "#a855f7",
+                          background: c.role === "admin" ? "rgba(245,158,11,0.15)" : "rgba(168,85,247,0.15)",
+                        }}>{c.role === "admin" ? "ADMIN" : "HOUND"}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: "#555", fontFamily: "'Space Mono', monospace" }}>{formatTimeAgo(c.timestamp)}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "#ccc", lineHeight: 1.5 }}>{c.text}</div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add Note Input */}
+            <div style={{ padding: "12px 24px 18px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 8 }}>
+              <input
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && newComment.trim()) { addComment(selectedLead.id, newComment, "Admin", "admin"); } }}
+                placeholder="Add a note..."
+                style={{
+                  flex: 1, padding: "10px 14px", borderRadius: 9,
+                  border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
+                  color: "#e8e8ed", fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: "none",
+                }}
+              />
+              <button onClick={() => addComment(selectedLead.id, newComment, "Admin", "admin")} style={{
+                padding: "10px 16px", borderRadius: 9, border: "none",
+                background: newComment.trim() ? "linear-gradient(135deg, #f59e0b, #ef4444)" : "rgba(255,255,255,0.06)",
+                color: newComment.trim() ? "#fff" : "#555", fontSize: 12, fontWeight: 600, cursor: newComment.trim() ? "pointer" : "default",
+                fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s",
+              }}>Add Note</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ââ Add Lead Modal ââ */}
       {showAddLead && (
         <div style={{
@@ -1200,7 +1458,7 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
                       }}>
                         <input type="file" accept="image/*" onChange={handleImageUpload}
                           style={{ display: "none" }} />
-                        <div style={{ fontSize: 24, marginBottom: 4 }}>🖼️</div>
+                        <div style={{ fontSize: 24, marginBottom: 4 }}>ð¼ï¸</div>
                         <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Upload Image</div>
                         <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>Gallery or files</div>
                       </label>
@@ -1211,7 +1469,7 @@ Return ONLY the raw JSON object, no markdown, no code fences, no explanation.`,
                       }}>
                         <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload}
                           style={{ display: "none" }} />
-                        <div style={{ fontSize: 24, marginBottom: 4 }}>📸</div>
+                        <div style={{ fontSize: 24, marginBottom: 4 }}>ð¸</div>
                         <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Take Photo</div>
                         <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>Use camera</div>
                       </label>
@@ -1411,8 +1669,8 @@ export default function LeadHound() {
 
   if (user.role === "referrer") {
     const bd = birdDogs.find(b => b.id === user.birdDogId);
-    return <ReferrerPortal birdDog={bd} leads={leads} onLogout={handleLogout} />;
+    return <ReferrerPortal birdDog={bd} leads={leads} setLeads={setLeads} onLogout={handleLogout} />;
   }
 
   return <AdminDashboard leads={leads} setLeads={setLeads} birdDogs={birdDogs} setBirdDogs={setBirdDogs} onLogout={handleLogout} />;
-                                       }
+}
